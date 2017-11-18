@@ -8,37 +8,30 @@ kafka.topic: "ads"
 kafka.partitions: 20
 kafka.zookeeper.path: /
 
-akka.zookeeper.path: /akkaQuery
-
 zookeeper.servers:
-    - "localhost"
+    - "10.0.0.34"
 zookeeper.port: 2181
 
-redis.host: "localhost"
+redis.host: "10.0.0.34"
 
-process.hosts: 10
-process.cores: 12
-
-#STORM Specific
-storm.workers: 1
-storm.ackers: 2
-storm.highcard.redisthreads: 20
+process.hosts: 20
+process.cores: 6
 
 #Spark Specific
 spark.batchtime: 2000
 
 #Flink specific
 group.id: "flink_yahoo_benchmark"
-flink.checkpoint.interval: 60000
+flink.checkpoint.interval: 1000
 add.result.sink: 1
-flink.highcard.checkpointURI: "file:///tmp/checkpoints"
-redis.threads: 20
+#flink.highcard.checkpointURI: "file:///tmp/checkpoints"
+redis.threads: 10
 
 
 # The following is for when running the EventGenerator directly rather than reading from Kafka
 use.local.event.generator: 1
 redis.flush: 1
 redis.db: 0
-load.target.hz: 10000000
-num.campaigns: 1000000
-
+load.target.hz: 2000000
+load.time.slice.length.ms: 1000
+num.campaigns: 100

@@ -1,13 +1,16 @@
 package flink.benchmark.generator;
 
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Base class for LoadGenerator Sources.  Implements features to generate whatever load
  * you require.
  */
 public abstract class LoadGeneratorSource<T> extends RichParallelSourceFunction<T> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(LoadGeneratorSource.class);
 
   private boolean running = true;
 
@@ -41,6 +44,11 @@ public abstract class LoadGeneratorSource<T> extends RichParallelSourceFunction<
       long emitTime = System.currentTimeMillis() - emitStartTime;
       if (emitTime < timeSliceLengthMs) {
         Thread.sleep(timeSliceLengthMs - emitTime);
+        long timeToSpare = timeSliceLengthMs - emitTime;
+        LOG.info("TIME TO SPARE " + timeToSpare);
+      } else {
+        long behind = emitTime - timeSliceLengthMs;
+        LOG.info("FALLING BEHIND by " + behind);
       }
     }
     sourceContext.close();

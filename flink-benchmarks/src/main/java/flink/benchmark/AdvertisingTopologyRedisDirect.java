@@ -5,6 +5,8 @@
 package flink.benchmark;
 
 import benchmark.common.advertising.PooledRedisConnections;
+import flink.benchmark.generator.EventGeneratorSource;
+import flink.benchmark.generator.RedisHelper;
 import flink.benchmark.generator.HighKeyCardinalityGeneratorSource;
 import flink.benchmark.utils.ThroughputLogger;
 import net.minidev.json.parser.JSONParser;
@@ -14,6 +16,7 @@ import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple7;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
@@ -22,6 +25,8 @@ import org.apache.flink.streaming.util.serialization.SimpleStringSchema;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.Map;
+import java.util.List;
 
 /**
  * To Run:  flink run -c flink.benchmark.AdvertisingTopologyRedisDirect target/flink-benchmarks-0.1.0.jar "../conf/benchmarkConf.yaml"
@@ -30,13 +35,27 @@ public class AdvertisingTopologyRedisDirect {
 
   private static final Logger LOG = LoggerFactory.getLogger(AdvertisingTopologyRedisDirect.class);
 
+  /**
+   * Setup Flink environment
+   */
+  private static StreamExecutionEnvironment setupEnvironment(BenchmarkConfig config) {
+    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+    env.getConfig().setGlobalJobParameters(config.getParameters());
+
+    if (config.checkpointsEnabled) {
+      env.enableCheckpointing(config.checkpointInterval);
+      env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
+    }
+
+    env.setParallelism(config.parallelism);
+    return env;
+  }
+
   public static void main(final String[] args) throws Exception {
 
     BenchmarkConfig config = BenchmarkConfig.fromArgs(args);
 
-    StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-    env.getConfig().setGlobalJobParameters(config.getParameters());
-    env.enableCheckpointing(5000);
+    StreamExecutionEnvironment env = setupEnvironment(config);
 
     DataStream<String> messageStream = sourceStream(config, env);
 
@@ -67,9 +86,15 @@ public class AdvertisingTopologyRedisDirect {
     RichParallelSourceFunction<String> source;
     String sourceName;
     if (config.useLocalEventGenerator) {
-      HighKeyCardinalityGeneratorSource eventGenerator = new HighKeyCardinalityGeneratorSource(config);
+      EventGeneratorSource eventGenerator = new EventGeneratorSource(config);
       source = eventGenerator;
       sourceName = "EventGenerator";
+
+      Map<String, List<String>> campaigns = eventGenerator.getCampaigns();
+      RedisHelper redisHelper = new RedisHelper(config);
+      redisHelper.prepareRedis(campaigns);
+      redisHelper.writeCampaignFile(campaigns);
+
     } else {
       source = new FlinkKafkaConsumer082<>(config.kafkaTopic, new SimpleStringSchema(), config.getParameters().getProperties());
       sourceName = "Kafka";

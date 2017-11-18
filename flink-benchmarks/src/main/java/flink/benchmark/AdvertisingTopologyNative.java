@@ -6,12 +6,15 @@ package flink.benchmark;
 
 import benchmark.common.advertising.RedisAdCampaignCache;
 import benchmark.common.advertising.CampaignProcessorCommon;
+import flink.benchmark.generator.EventGeneratorSource;
+import flink.benchmark.generator.RedisHelper;
 import flink.benchmark.utils.ThroughputLogger;
 import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple7;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer082;
@@ -20,6 +23,8 @@ import org.apache.flink.util.Collector;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.Map;
+import java.util.List;
 
 
 /**
@@ -32,19 +37,35 @@ public class AdvertisingTopologyNative {
 
   private static final Logger LOG = LoggerFactory.getLogger(AdvertisingTopologyNative.class);
 
-
-  public static void main(final String[] args) throws Exception {
-
-    BenchmarkConfig config = BenchmarkConfig.fromArgs(args);
-
+  /**
+   * Setup Flink environment
+   */
+  private static StreamExecutionEnvironment setupEnvironment(BenchmarkConfig config) {
     StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     env.getConfig().setGlobalJobParameters(config.getParameters());
 
     if (config.checkpointsEnabled) {
       env.enableCheckpointing(config.checkpointInterval);
+      env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
     }
 
-    DataStream<String> messageStream = env.addSource(kafkaSource(config));
+    env.setParallelism(config.parallelism);
+    return env;
+  }
+
+
+  public static void main(final String[] args) throws Exception {
+
+    BenchmarkConfig config = BenchmarkConfig.fromArgs(args);
+
+    StreamExecutionEnvironment env = setupEnvironment(config);
+
+    EventGeneratorSource eventGenerator = new EventGeneratorSource(config);
+    Map<String, List<String>> campaigns = eventGenerator.getCampaigns();
+    RedisHelper redisHelper = new RedisHelper(config);
+    redisHelper.prepareRedis(campaigns);
+    redisHelper.writeCampaignFile(campaigns);
+    DataStream<String> messageStream = env.addSource(eventGenerator, "EventGenerator");
 
     messageStream.flatMap(new ThroughputLogger<String>(240, 1_000_000));
 

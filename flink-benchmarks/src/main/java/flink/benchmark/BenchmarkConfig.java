@@ -43,6 +43,7 @@ public class BenchmarkConfig implements Serializable{
   public final boolean checkpointsEnabled;
   public final String checkpointUri;
   public boolean checkpointToUri;
+  public final int parallelism;
 
   // The raw parameters
   public final ParameterTool parameters;
@@ -81,6 +82,7 @@ public class BenchmarkConfig implements Serializable{
     this.checkpointsEnabled = checkpointInterval > 0;
     this.checkpointUri = parameterTool.get("flink.checkpoint.uri", "");
     this.checkpointToUri = checkpointUri.length() > 0;
+    this.parallelism = parameterTool.getInt("process.hosts") * parameterTool.getInt("process.cores");
   }
 
   /**

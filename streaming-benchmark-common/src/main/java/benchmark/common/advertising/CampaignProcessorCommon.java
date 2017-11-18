@@ -44,7 +44,7 @@ public class CampaignProcessorCommon {
             public void run() {
                 try {
                     while (true) {
-                        Thread.sleep(1000);
+                        Thread.sleep(100);
                         flushWindows();
                         lastWindowMillis = System.currentTimeMillis();
                     }

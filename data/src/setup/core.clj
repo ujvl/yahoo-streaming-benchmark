@@ -129,12 +129,12 @@
 
 (defn get-stats [redis-host]
   (with-open [seen-file (clojure.java.io/writer "seen.txt")
-              updated-file (clojure.java.io/writer "updated.txt")]
-    (letfn [(data-printer [[seen updated]]
+              updated-file (clojure.java.io/writer "updated.txt")
+              times-file (clojure.java.io/writer "times.txt")]
+    (letfn [(data-printer [[seen updated times]]
               (.write seen-file (str seen "\n"))
               (.write updated-file (str updated "\n"))
-              (.flush seen-file)
-              (.flush updated-file))]
+              (.write times-file (str times "\n")))]
       (redis/with-server {:host redis-host}
         (doall
          (map data-printer
@@ -148,7 +148,7 @@
                              (let [window-key (redis/hget campaign window-time)
                                    seen (redis/hget window-key "seen_count")
                                    time_updated (redis/hget window-key "time_updated")]
-                               [seen (- (Long/parseLong time_updated) (Long/parseLong window-time))]))))))))))))
+                               [seen (- (Long/parseLong time_updated) (Long/parseLong window-time)) window-time]))))))))))))
 
 (defn gen-ads [redis-host]
   (redis/with-server {:host redis-host}

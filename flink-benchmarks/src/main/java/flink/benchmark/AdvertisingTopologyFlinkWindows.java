@@ -31,6 +31,7 @@ import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer082;
 import org.apache.flink.streaming.util.serialization.SimpleStringSchema;
+import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,10 +126,12 @@ public class AdvertisingTopologyFlinkWindows {
 
     if (config.checkpointsEnabled) {
       env.enableCheckpointing(config.checkpointInterval);
+      env.getCheckpointConfig().setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE);
     }
 
     // use event time
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+    env.setParallelism(config.parallelism);
     return env;
   }
 
@@ -154,9 +157,12 @@ public class AdvertisingTopologyFlinkWindows {
       public void apply(Tuple keyTuple, TimeWindow window, Iterable<Tuple3<String, String, Long>> values, Collector<Tuple3<String, String, Long>> out) throws Exception {
         Iterator<Tuple3<String, String, Long>> valIter = values.iterator();
         Tuple3<String, String, Long> tuple = valIter.next();
+        if (tuple == null)
+          return;
         if (valIter.hasNext()) {
           throw new IllegalStateException("Unexpected");
         }
+        LOG.info("Processing window {} at {}", window.getEnd(), System.currentTimeMillis());
         tuple.f1 = Long.toString(window.getEnd());
         out.collect(tuple); // collect end time here
       }
@@ -271,7 +277,6 @@ public class AdvertisingTopologyFlinkWindows {
       if (campaign_id == null) {
         return;
       }
-
       Tuple2<String, String> tuple = new Tuple2<>(campaign_id, (String) input.getField(1)); // event_time
       out.collect(tuple);
     }
@@ -368,7 +373,8 @@ public class AdvertisingTopologyFlinkWindows {
     @Override
     public void close() throws Exception {
       super.close();
-      flushJedis.close();
+      if (flushJedis != null)
+        flushJedis.close();
     }
   }
 
@@ -399,7 +405,8 @@ public class AdvertisingTopologyFlinkWindows {
     @Override
     public void close() throws Exception {
       super.close();
-      flushJedis.close();
+      if (flushJedis != null)
+        flushJedis.close();
     }
   }
 }

@@ -31,7 +31,7 @@ ZK_CONNECTIONS="$ZK_HOST:$ZK_PORT"
 TOPIC=${TOPIC:-"ad-events"}
 PARTITIONS=${PARTITIONS:-1}
 LOAD=${LOAD:-1000}
-CONF_FILE=./conf/localConf.yaml
+CONF_FILE=./conf/benchmarkConf.yaml
 TEST_TIME=${TEST_TIME:-240}
 
 pid_match() {
@@ -159,16 +159,19 @@ run() {
     fetch_untar_file "$KAFKA_FILE" "http://mirrors.advancedhosters.com/apache/kafka/$KAFKA_VERSION/$KAFKA_FILE"
 
     #Fetch Storm
-    STORM_FILE="$STORM_DIR.tar.gz"
-    fetch_untar_file "$STORM_FILE" "http://www.interior-dsgn.com/apache/storm/$STORM_DIR/$STORM_FILE"
+    # STORM_FILE="$STORM_DIR.tar.gz"
+    # fetch_untar_file "$STORM_FILE" "http://www.interior-dsgn.com/apache/storm/$STORM_DIR/$STORM_FILE"
 
     #Fetch Flink
     FLINK_FILE="$FLINK_DIR-bin-hadoop27-scala_${SCALA_BIN_VERSION}.tgz"
-    fetch_untar_file "$FLINK_FILE" "http://mirror.nexcess.net/apache/flink/flink-$FLINK_VERSION/$FLINK_FILE"
+    fetch_untar_file "$FLINK_FILE" "https://archive.apache.org/dist/flink/flink-$FLINK_VERSION/$FLINK_FILE"
 
-    #Fetch Spark
-    SPARK_FILE="$SPARK_DIR.tgz"
-    fetch_untar_file "$SPARK_FILE" "http://mirror.nexcess.net/apache/spark/spark-$SPARK_VERSION/$SPARK_FILE"
+    cp conf/slaves $FLINK_DIR/conf/
+    cp conf/flink-conf.yaml $FLINK_DIR/conf/
+
+    # #Fetch Spark
+    # SPARK_FILE="$SPARK_DIR.tgz"
+    # fetch_untar_file "$SPARK_FILE" "http://mirror.nexcess.net/apache/spark/spark-$SPARK_VERSION/$SPARK_FILE"
 
   elif [ "START_ZK" = "$OPERATION" ];
   then
@@ -210,10 +213,10 @@ run() {
     rm -rf /tmp/kafka-logs/
   elif [ "START_FLINK" = "$OPERATION" ];
   then
-    start_if_needed org.apache.flink.runtime.jobmanager.JobManager Flink 1 $FLINK_DIR/bin/start-local.sh
+    start_if_needed org.apache.flink.runtime.jobmanager.JobManager Flink 1 $FLINK_DIR/bin/start-cluster.sh
   elif [ "STOP_FLINK" = "$OPERATION" ];
   then
-    $FLINK_DIR/bin/stop-local.sh
+    $FLINK_DIR/bin/stop-cluster.sh
   elif [ "START_SPARK" = "$OPERATION" ];
   then
     start_if_needed org.apache.spark.deploy.master.Master SparkMaster 5 $SPARK_DIR/sbin/start-master.sh -h localhost -p 7077
@@ -233,6 +236,7 @@ run() {
     stop_if_needed leiningen.core.main "Load Generation"
     cd data
     $LEIN run -g --configPath ../$CONF_FILE || true
+    paste -d' ' times.txt updated.txt | sort -n > latencies.txt
     cd ..
   elif [ "START_STORM_TOPOLOGY" = "$OPERATION" ];
   then
@@ -251,7 +255,9 @@ run() {
     stop_if_needed spark.benchmark.KafkaRedisAdvertisingStream "Spark Client Process"
   elif [ "START_FLINK_PROCESSING" = "$OPERATION" ];
   then
-    "$FLINK_DIR/bin/flink" run ./flink-benchmarks/target/flink-benchmarks-0.1.0.jar $CONF_FILE &
+#    "$FLINK_DIR/bin/flink" run -c flink.benchmark.AdvertisingTopologyNative ./flink-benchmarks/target/flink-benchmarks-0.1.0.jar $CONF_FILE &
+#    "$FLINK_DIR/bin/flink" run -c flink.benchmark.AdvertisingTopologyRedisDirect ./flink-benchmarks/target/flink-benchmarks-0.1.0.jar $CONF_FILE &
+    "$FLINK_DIR/bin/flink" run -c flink.benchmark.AdvertisingTopologyFlinkWindows ./flink-benchmarks/target/flink-benchmarks-0.1.0.jar $CONF_FILE &
     sleep 3
   elif [ "STOP_FLINK_PROCESSING" = "$OPERATION" ];
   then
@@ -280,19 +286,19 @@ run() {
     run "STOP_ZK"
   elif [ "FLINK_TEST" = "$OPERATION" ];
   then
-    run "START_ZK"
+#    run "START_ZK"
     run "START_REDIS"
-    run "START_KAFKA"
+#    run "START_KAFKA"
     run "START_FLINK"
     run "START_FLINK_PROCESSING"
-    run "START_LOAD"
+#    run "START_LOAD"
     sleep $TEST_TIME
     run "STOP_LOAD"
     run "STOP_FLINK_PROCESSING"
     run "STOP_FLINK"
-    run "STOP_KAFKA"
+#    run "STOP_KAFKA"
     run "STOP_REDIS"
-    run "STOP_ZK"
+#    run "STOP_ZK"
   elif [ "SPARK_TEST" = "$OPERATION" ];
   then
     run "START_ZK"
@@ -320,6 +326,9 @@ run() {
     run "STOP_KAFKA"
     run "STOP_REDIS"
     run "STOP_ZK"
+  elif [ "REBUILD" = "$OPERATION" ];
+  then
+    $MVN clean install -Dspark.version="$SPARK_VERSION" -Dkafka.version="$KAFKA_VERSION" -Dflink.version="$FLINK_VERSION" -Dstorm.version="$STORM_VERSION" -Dscala.binary.version="$SCALA_BIN_VERSION" -Dscala.version="$SCALA_BIN_VERSION.$SCALA_SUB_VERSION"
   else
     if [ "HELP" != "$OPERATION" ];
     then
