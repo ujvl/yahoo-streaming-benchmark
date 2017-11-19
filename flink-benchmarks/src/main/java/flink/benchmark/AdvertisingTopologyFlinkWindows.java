@@ -12,6 +12,7 @@ import net.minidev.json.JSONObject;
 import net.minidev.json.parser.JSONParser;
 import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.common.state.OperatorState;
+import org.apache.flink.api.common.restartstrategy.*;
 import org.apache.flink.api.java.tuple.Tuple;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
@@ -132,6 +133,10 @@ public class AdvertisingTopologyFlinkWindows {
     // use event time
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
     env.setParallelism(config.parallelism);
+
+    env.setRestartStrategy(RestartStrategies.fixedDelayRestart(1, // number of restart attempts 
+                                                               1 // delay in milliseconds
+                                                               ));
     return env;
   }
 

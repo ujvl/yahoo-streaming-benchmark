@@ -27,7 +27,7 @@ public class HighKeyCardinalityGeneratorSource extends LoadGeneratorSource<Strin
   }
 
   @Override
-  public String generateElement() {
+  public String generateElement(long windowTime) {
     if (eventsIdx == eventTypes.length) {
       eventsIdx = 0;
     }
@@ -40,7 +40,7 @@ public class HighKeyCardinalityGeneratorSource extends LoadGeneratorSource<Strin
     elementBase.append("\",\"ad_type\":\"banner78\",\"event_type\":\"");
     elementBase.append(eventTypes[eventsIdx++]);
     elementBase.append("\",\"event_time\":\"");
-    elementBase.append(System.currentTimeMillis());
+    elementBase.append(windowTime);
     elementBase.append("\",\"ip_address\":\"1.2.3.4\"}");
 
     return elementBase.toString();

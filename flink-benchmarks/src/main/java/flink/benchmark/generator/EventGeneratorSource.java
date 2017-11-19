@@ -33,7 +33,7 @@ public class EventGeneratorSource extends LoadGeneratorSource<String> {
    * Generate a single element
    */
   @Override
-  public String generateElement() {
+  public String generateElement(long timeWindow) {
     if (adsIdx == ads.size()) {
       adsIdx = 0;
     }
@@ -52,7 +52,7 @@ public class EventGeneratorSource extends LoadGeneratorSource<String> {
     sb.append("\",\"event_type\":\"");
     sb.append(eventTypes[eventsIdx++]);
     sb.append("\",\"event_time\":\"");
-    sb.append(System.currentTimeMillis());
+    sb.append(timeWindow);
     sb.append("\",\"ip_address\":\"1.2.3.4\"}");
 
     return sb.toString();

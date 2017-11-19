@@ -285,21 +285,28 @@ run() {
     run "STOP_KAFKA"
     run "STOP_REDIS"
     run "STOP_ZK"
-  elif [ "FLINK_TEST" = "$OPERATION" ];
+  elif [ "FLINK_TEST_FAILURE" = "$OPERATION" ];
   then
-#    run "START_ZK"
     run "START_REDIS"
-#    run "START_KAFKA"
     run "START_FLINK"
     run "START_FLINK_PROCESSING"
-#    run "START_LOAD"
+    sleep 240
+    ssh caelum-302 "cd ~/data-artisans-ycsb/flink-1.0.1/bin/ ; ./taskmanager.sh stop ; sleep 1 ; ./taskmanager.sh start"
+    sleep 159
+    run "STOP_LOAD"
+    run "STOP_FLINK_PROCESSING"
+    run "STOP_FLINK"
+    run "STOP_REDIS"
+  elif [ "FLINK_TEST" = "$OPERATION" ];
+  then
+    run "START_REDIS"
+    run "START_FLINK"
+    run "START_FLINK_PROCESSING"
     sleep $TEST_TIME
     run "STOP_LOAD"
     run "STOP_FLINK_PROCESSING"
     run "STOP_FLINK"
-#    run "STOP_KAFKA"
     run "STOP_REDIS"
-#    run "STOP_ZK"
   elif [ "SPARK_TEST" = "$OPERATION" ];
   then
     run "START_ZK"
