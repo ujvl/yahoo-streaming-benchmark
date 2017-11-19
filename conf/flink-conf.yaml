@@ -146,3 +146,10 @@ fs.hdfs.hadoopconf: /etc/hadoop/conf/
 # directory (see above) before configuring the storageDir.
 #
 # recovery.zookeeper.storageDir: hdfs:///recovery
+
+akka.ask.timeout: 1500ms
+akka.lookup.timeout: 1500ms
+akka.watch.threshold: 3
+# Need to modify sources for this one: flink-runtime/src/main/scala/org/apache/flink/runtime/akka/AkkaUtils.scala
+# See patch in conf dir.
+#akka.remote.retry-gate-closed-for: 100ms
