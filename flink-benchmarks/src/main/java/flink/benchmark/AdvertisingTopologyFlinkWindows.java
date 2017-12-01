@@ -33,12 +33,15 @@ import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer082;
 import org.apache.flink.streaming.util.serialization.SimpleStringSchema;
 import org.apache.flink.streaming.api.CheckpointingMode;
+import org.apache.flink.runtime.state.CheckpointListener;
+import org.apache.flink.streaming.api.checkpoint.Checkpointed;
 import org.apache.flink.util.Collector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 
 import java.util.Iterator;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -90,7 +93,7 @@ public class AdvertisingTopologyFlinkWindows {
     } else {
       result.addSink(new RedisResultSink(config));
     }
-
+    //    result.addSink(new RedisResultNotifySink(config));
     env.execute("AdvertisingTopologyFlinkWindows " + config.parameters.toMap().toString());
   }
 
@@ -321,6 +324,86 @@ public class AdvertisingTopologyFlinkWindows {
     @Override
     public Tuple3<String, String, Long> map(Tuple2<String, String> t3) throws Exception {
       return new Tuple3<>(t3.f0, t3.f1, 1L);
+    }
+  }
+
+  private static class RedisResultNotifySink extends RichSinkFunction<Tuple3<String, String, Long>> implements CheckpointListener, Checkpointed<ArrayList<Tuple3<String, String, Long>>> {
+    private Jedis flushJedis;
+
+    private BenchmarkConfig config;
+    private ArrayList<Tuple3<String, String, Long>> cached;
+
+    public RedisResultNotifySink(BenchmarkConfig config) {
+      this.config = config;
+      this.cached = new ArrayList<Tuple3<String, String, Long>>();
+    }
+
+    @Override
+    public void open(Configuration parameters) throws Exception {
+      super.open(parameters);
+      flushJedis = new Jedis(config.redisHost);
+    }
+
+    @Override
+    public void invoke(Tuple3<String, String, Long> result) throws Exception {
+      cached.add(result);
+      // String campaign = result.f0;
+      // String timestamp = result.f1;
+      // String windowUUID = getOrCreateWindow(campaign, timestamp);
+
+      // flushJedis.hset(windowUUID, "seen_count", Long.toString(result.f2));
+      // flushJedis.hset(windowUUID, "time_updated", Long.toString(System.currentTimeMillis()));
+      // flushJedis.lpush("time_updated", Long.toString(System.currentTimeMillis()));
+    }
+
+    private String getOrCreateWindow(String campaign, String timestamp) {
+      String windowUUID = flushJedis.hmget(campaign, timestamp).get(0);
+      if (windowUUID == null) {
+        windowUUID = UUID.randomUUID().toString();
+        flushJedis.hset(campaign, timestamp, windowUUID);
+        getOrCreateWindowList(campaign, timestamp);
+      }
+      return windowUUID;
+    }
+
+    private void getOrCreateWindowList(String campaign, String timestamp) {
+      String windowListUUID = flushJedis.hmget(campaign, "windows").get(0);
+      if (windowListUUID == null) {
+        windowListUUID = UUID.randomUUID().toString();
+        flushJedis.hset(campaign, "windows", windowListUUID);
+      }
+      flushJedis.lpush(windowListUUID, timestamp);
+    }
+
+    @Override
+    public void close() throws Exception {
+      super.close();
+      if (flushJedis != null)
+        flushJedis.close();
+    }
+
+    @Override
+    public ArrayList<Tuple3<String, String, Long>> snapshotState(long checkpointId, long checkpointTimestamp) {
+      return cached;
+    }
+
+    @Override
+    public void restoreState(ArrayList<Tuple3<String, String, Long>> state) {
+      cached = state;
+    }
+
+    @Override
+    public void notifyCheckpointComplete(long checkpointId) throws Exception {
+      for (Tuple3<String, String, Long> result : cached) {
+        String campaign = result.f0;
+        String timestamp = result.f1;
+        String windowUUID = getOrCreateWindow(campaign, timestamp);
+
+        flushJedis.hset(windowUUID, "seen_count", Long.toString(result.f2));
+        flushJedis.hset(windowUUID, "time_updated", Long.toString(System.currentTimeMillis()));
+        flushJedis.lpush("time_updated", Long.toString(System.currentTimeMillis()));
+      }
+      cached.clear();
     }
   }
 
