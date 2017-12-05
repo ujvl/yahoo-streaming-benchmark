@@ -14,8 +14,8 @@ zookeeper.port: 2181
 
 redis.host: "10.0.0.34"
 
-process.hosts: 20
-process.cores: 6
+process.hosts: 25
+process.cores: 3
 
 #Spark Specific
 spark.batchtime: 2000
@@ -32,6 +32,6 @@ redis.threads: 10
 use.local.event.generator: 1
 redis.flush: 1
 redis.db: 0
-load.target.hz: 2000000
-load.time.slice.length.ms: 1000
+load.target.hz: 10000000
+load.time.slice.length.ms: 50
 num.campaigns: 100
