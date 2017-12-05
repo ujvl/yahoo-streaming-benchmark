@@ -14,11 +14,12 @@
 # Before running this script perform the following steps:
 # 1) Get drizzle: git clone https://github.com/amplab/drizzle-spark.git drizzle
 # 2) Copy Drizzle YSB job file to drizzle/examples/src/main/scala/org/apache/spark/examples/
-# 3) Build Drizzle: ./dev/make-distribution.sh --name drizzle --tgz
-# 4) Untar Drizzle on each machine
-# 5) Copy conf/spark-env.sh to ${DRIZZLE-HOME}/conf
-# 6) Configure ${DRIZZLE-HOME}/conf/slaves
-# 7) Copy the jars from ${DRIZZLE-HOME}/examples/jars to ${DRIZZLE-HOME}/jars directory
+# 3) Copy conf/drizzle-examples-pom.xml to drizzle/examples/pom.xml
+# 4) Build Drizzle: ./dev/make-distribution.sh --name drizzle --tgz
+# 5) Untar Drizzle on each machine
+# 6) Copy conf/spark-env.sh to ${DRIZZLE-HOME}/conf
+# 7) Configure ${DRIZZLE-HOME}/conf/slaves
+# 8) Copy the jars from ${DRIZZLE-HOME}/examples/jars to ${DRIZZLE-HOME}/jars directory
 
 for i in `seq 1 10`; do
   ./sbin/stop-all.sh
