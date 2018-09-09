@@ -25,7 +25,7 @@
 # The JobManager process will use this hostname to bind the listening servers to.
 # The TaskManagers will try to connect to the JobManager on that host.
 
-jobmanager.rpc.address: 10.0.0.34
+jobmanager.rpc.address: ip-172-31-5-90
 
 
 # The port where the JobManager's main actor system listens for messages.
@@ -45,7 +45,7 @@ taskmanager.heap.mb: 20000
 
 # The number of task slots that each TaskManager offers. Each slot runs one parallel pipeline.
 
-taskmanager.numberOfTaskSlots: 12
+taskmanager.numberOfTaskSlots: 4
 
 # Specify whether TaskManager memory should be allocated when starting up (true) or when
 # memory is required in the memory manager (false)
@@ -54,7 +54,7 @@ taskmanager.memory.preallocate: false
 
 # The parallelism used for programs that did not specify and other parallelism.
 
-parallelism.default: 6
+parallelism.default: 2
 
 
 #==============================================================================
@@ -89,7 +89,9 @@ state.backend: filesystem
 # Use "hdfs://" for HDFS setups, "file://" for UNIX/POSIX-compliant file systems,
 # (or any local file system under Windows), or "S3://" for S3 file system.
 #
-state.backend.fs.checkpointdir: hdfs://10.0.0.34:8020/tmp/flink-checkpoints
+#state.backend.fs.checkpointdir: hdfs://10.0.0.34:8020/tmp/flink-checkpoints
+#state.backend.fs.checkpointdir: s3://ysb-actor-checkpoints.s3-us-west-2.amazonaws.com/flink-checkpoints
+state.backend.fs.checkpointdir: hdfs://172.31.5.90:9000/flink-checkpoints
 
 
 #==============================================================================
@@ -127,7 +129,7 @@ taskmanager.network.numberOfBuffers: 16384
 # You can also directly specify the paths to hdfs-default.xml and hdfs-site.xml
 # via keys 'fs.hdfs.hdfsdefault' and 'fs.hdfs.hdfssite'.
 #
-fs.hdfs.hadoopconf: /etc/hadoop/conf/
+fs.hdfs.hadoopconf: /etc/hadoop/
 
 
 #==============================================================================
