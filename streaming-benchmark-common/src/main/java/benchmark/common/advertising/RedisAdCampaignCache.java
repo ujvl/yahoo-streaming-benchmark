@@ -12,6 +12,11 @@ public class RedisAdCampaignCache {
     private Jedis jedis;
     private HashMap<String, String> ad_to_campaign;
 
+    public RedisAdCampaignCache(String redisServerHostname, int redisDb) {
+        jedis = new Jedis(redisServerHostname);
+        jedis.select(redisDb);
+    }
+
     public RedisAdCampaignCache(String redisServerHostname) {
         jedis = new Jedis(redisServerHostname);
     }

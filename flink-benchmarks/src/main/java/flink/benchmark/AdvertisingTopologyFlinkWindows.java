@@ -274,7 +274,7 @@ public class AdvertisingTopologyFlinkWindows {
       //initialize jedis
       String redis_host = config.redisHost;
       LOG.info("Opening connection with Jedis to {}", redis_host);
-      this.redisAdCampaignCache = new RedisAdCampaignCache(redis_host);
+      this.redisAdCampaignCache = new RedisAdCampaignCache(redis_host, config.redisDb);
       this.redisAdCampaignCache.prepare();
     }
 
@@ -283,6 +283,7 @@ public class AdvertisingTopologyFlinkWindows {
       String ad_id = input.getField(0);
       String campaign_id = this.redisAdCampaignCache.execute(ad_id);
       if (campaign_id == null) {
+        LOG.info("campaign id null for {}", ad_id);
         return;
       }
       Tuple2<String, String> tuple = new Tuple2<>(campaign_id, (String) input.getField(1)); // event_time
@@ -341,7 +342,7 @@ public class AdvertisingTopologyFlinkWindows {
     @Override
     public void open(Configuration parameters) throws Exception {
       super.open(parameters);
-      flushJedis = new Jedis(config.redisHost);
+      flushJedis = new Jedis(config.redisHost, config.redisDb);
     }
 
     @Override
