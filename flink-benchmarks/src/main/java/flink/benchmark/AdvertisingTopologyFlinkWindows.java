@@ -342,7 +342,8 @@ public class AdvertisingTopologyFlinkWindows {
     @Override
     public void open(Configuration parameters) throws Exception {
       super.open(parameters);
-      flushJedis = new Jedis(config.redisHost, config.redisDb);
+      flushJedis = new Jedis(config.redisHost, 6379, 10000);
+      flushJedis.select(config.redisDb);
     }
 
     @Override
@@ -423,7 +424,8 @@ public class AdvertisingTopologyFlinkWindows {
     @Override
     public void open(Configuration parameters) throws Exception {
       super.open(parameters);
-      flushJedis = new Jedis(config.redisHost);
+      flushJedis = new Jedis(config.redisHost, 6379, 10000);
+      flushJedis.select(config.redisDb);
     }
 
     @Override
@@ -481,7 +483,7 @@ public class AdvertisingTopologyFlinkWindows {
     @Override
     public void open(Configuration parameters) throws Exception {
       super.open(parameters);
-      flushJedis = new Jedis(config.redisHost);
+      flushJedis = new Jedis(config.redisHost, 6379, 10000);
       flushJedis.select(1); // select db 1
     }
 

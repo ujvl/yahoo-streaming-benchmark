@@ -23,7 +23,7 @@ public class RedisHelper {
   }
 
   public void prepareRedis(Map<String, List<String>> campaigns) {
-    Jedis redis = new Jedis(config.redisHost);
+    Jedis redis = new Jedis(config.redisHost, 6379, 10000);
     redis.select(config.redisDb);
     if (config.redisFlush) {
       LOG.info("Flushing Redis DB.");
