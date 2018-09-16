@@ -11,13 +11,13 @@ kafka.zookeeper.path: /
 
 # zookeeper (ignore)
 zookeeper.servers:
-    - "ip-172-31-5-90"
+    - "ip-172-31-0-183"
 zookeeper.port: 2181
 
 # redis
-redis.host: "ip-172-31-5-90"
+redis.host: "ip-172-31-0-183"
 
-process.hosts: 1
+process.hosts: 127
 process.cores: 4
 
 #Spark Specific
@@ -34,7 +34,7 @@ redis.threads: 4
 # The following is for when running the EventGenerator directly rather than reading from Kafka
 use.local.event.generator: 1
 redis.flush: 1
-redis.db: 1
+redis.db: 0
 load.target.hz: 10000000
-load.time.slice.length.ms: 1000
+load.time.slice.length.ms: 100
 num.campaigns: 100

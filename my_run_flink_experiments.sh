@@ -1,5 +1,6 @@
 #!/bin/bash
 cp conf/benchmarkConf_custom.yaml conf/benchmarkConf.yaml
+cp conf/slaves flink-1.0.1/conf/
 
 ./stream-bench.sh STOP_ALL
 rm -rf ./flink-1.0.1/log/*

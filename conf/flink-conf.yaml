@@ -25,7 +25,7 @@
 # The JobManager process will use this hostname to bind the listening servers to.
 # The TaskManagers will try to connect to the JobManager on that host.
 
-jobmanager.rpc.address: ip-172-31-5-90
+jobmanager.rpc.address: ip-172-31-0-183 
 
 
 # The port where the JobManager's main actor system listens for messages.
@@ -35,12 +35,12 @@ jobmanager.rpc.port: 6123
 
 # The heap size for the JobManager JVM
 
-jobmanager.heap.mb: 20600
+jobmanager.heap.mb: 50600
 
 
 # The heap size for the TaskManager JVM
 
-taskmanager.heap.mb: 20000
+taskmanager.heap.mb: 12000
 
 
 # The number of task slots that each TaskManager offers. Each slot runs one parallel pipeline.
@@ -54,7 +54,7 @@ taskmanager.memory.preallocate: false
 
 # The parallelism used for programs that did not specify and other parallelism.
 
-parallelism.default: 2
+parallelism.default: 4
 
 
 #==============================================================================
@@ -91,7 +91,7 @@ state.backend: filesystem
 #
 #state.backend.fs.checkpointdir: hdfs://10.0.0.34:8020/tmp/flink-checkpoints
 #state.backend.fs.checkpointdir: s3://ysb-actor-checkpoints.s3-us-west-2.amazonaws.com/flink-checkpoints
-state.backend.fs.checkpointdir: hdfs://172.31.5.90:9000/flink-checkpoints
+state.backend.fs.checkpointdir: hdfs://ip-172-31-0-183:9000/flink-checkpoints
 
 
 #==============================================================================
@@ -129,7 +129,7 @@ taskmanager.network.numberOfBuffers: 16384
 # You can also directly specify the paths to hdfs-default.xml and hdfs-site.xml
 # via keys 'fs.hdfs.hdfsdefault' and 'fs.hdfs.hdfssite'.
 #
-fs.hdfs.hadoopconf: /etc/hadoop/
+fs.hdfs.hadoopconf: /home/ubuntu/yahoo-streaming-benchmark/hadoop-2.6.5/etc/
 
 
 #==============================================================================
@@ -149,8 +149,8 @@ fs.hdfs.hadoopconf: /etc/hadoop/
 #
 # recovery.zookeeper.storageDir: hdfs:///recovery
 
-akka.ask.timeout: 1500ms
-akka.lookup.timeout: 1500ms
+akka.ask.timeout: 5000ms
+akka.lookup.timeout: 5000ms
 akka.watch.threshold: 3
 # Need to modify sources for this one: flink-runtime/src/main/scala/org/apache/flink/runtime/akka/AkkaUtils.scala
 # See patch in conf dir.
