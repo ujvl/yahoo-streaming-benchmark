@@ -69,35 +69,45 @@ public class AdvertisingTopologyFlinkWindows {
 
     // log performance
     rawMessageStream.flatMap(new ThroughputLogger<String>(240, 1_000_000));
-
-    DataStream<Tuple2<String, String>> joinedAdImpressions = rawMessageStream
-      .flatMap(new DeserializeBolt())
-      .filter(new EventFilterBolt())
-      .<Tuple2<String, String>>project(2, 5) //ad_id, event_time
-      .flatMap(new RedisJoinBolt(config)) // campaign_id, event_time
-      .assignTimestamps(new AdTimestampExtractor()); // extract timestamps and generate watermarks from event_time
+    
+    DataStream<Tuple2<String, String>> joinedAdImpressions;
+    if (config.getParameters().has("no.json")) {
+        joinedAdImpressions = rawMessageStream
+            .filter(new EventFilterNoJSONBolt())
+            .flatMap(new ProjectNoJSONBolt()) //ad_id, event_time
+            .flatMap(new RedisJoinBolt(config)) // campaign_id, event_time
+            .assignTimestamps(new AdTimestampExtractor()); // extract timestamps and generate watermarks from event_time
+    } else {
+        joinedAdImpressions = rawMessageStream
+            .flatMap(new DeserializeBolt())
+            .filter(new EventFilterBolt())
+            .<Tuple2<String, String>>project(2, 5) //ad_id, event_time
+            .flatMap(new RedisJoinBolt(config)) // campaign_id, event_time
+            .assignTimestamps(new AdTimestampExtractor()); // extract timestamps and generate watermarks from event_time
+    }
 
     WindowedStream<Tuple3<String, String, Long>, Tuple, TimeWindow> windowStream = joinedAdImpressions
-      .map(new MapToImpressionCount())
-      .keyBy(0) // campaign_id
-      .timeWindow(Time.of(config.windowSize, TimeUnit.MILLISECONDS));
+    .map(new MapToImpressionCount())
+    .keyBy(0) // campaign_id
+    .timeWindow(Time.of(config.windowSize, TimeUnit.MILLISECONDS));
 
     // set a custom trigger
     windowStream.trigger(new EventAndProcessingTimeTrigger());
 
     // campaign_id, window end time, count
     DataStream<Tuple3<String, String, Long>> result =
-      windowStream.apply(sumReduceFunction(), sumWindowFunction());
+        windowStream.apply(sumReduceFunction(), sumWindowFunction());
 
-    // write result to redis
+        // write result to redis
     if (config.getParameters().has("add.result.sink.optimized")) {
-      result.addSink(new RedisResultSinkOptimized(config));
+        result.addSink(new RedisResultSinkOptimized(config));
     } else {
-      result.addSink(new RedisResultSink(config));
+        result.addSink(new RedisResultSink(config));
     }
     //    result.addSink(new RedisResultNotifySink(config));
     env.execute("AdvertisingTopologyFlinkWindows " + config.parameters.toMap().toString());
-  }
+
+    }
 
   /**
    * Choose source - either Kafka or data generator
@@ -255,7 +265,33 @@ public class AdvertisingTopologyFlinkWindows {
     FilterFunction<Tuple7<String, String, String, String, String, String, String>> {
     @Override
     public boolean filter(Tuple7<String, String, String, String, String, String, String> tuple) throws Exception {
-      return tuple.getField(4).equals("view");
+      return tuple.getField(4).equals("\"view\"    ");
+    }
+  }
+
+  /**
+   * Filter out all but "view" events (NO JSON)
+   */
+  public static class EventFilterNoJSONBolt implements
+    FilterFunction<String> {
+    @Override
+    public boolean filter(String raw_event) throws Exception {
+      String sub = raw_event.substring(180, 190);
+      LOG.info("is it true? {}, {} ==> {}", sub, "\"view\"    ", sub.equals("\"view\"    "));
+      return raw_event.substring(180, 190).equals("\"view\"    ");
+    }
+  }
+
+  /**
+   * Project (2, 5)
+   */
+  public static class ProjectNoJSONBolt extends RichFlatMapFunction<String, Tuple2<String, String>> {
+    @Override
+    public void flatMap(String input, Collector<Tuple2<String, String>> out) throws Exception {
+      String ad_id = input.substring(108, 144);
+      String event_time = input.substring(205, 221);
+      LOG.info("projected: ({}, {})", ad_id, event_time);
+      out.collect(new Tuple2<>(ad_id, event_time));
     }
   }
 

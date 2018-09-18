@@ -14,7 +14,11 @@ public class EventGeneratorSource extends LoadGeneratorSource<String> {
   private StringBuilder sb = new StringBuilder();
   private String pageID = UUID.randomUUID().toString();
   private String userID = UUID.randomUUID().toString();
-  private final String[] eventTypes = new String[]{"view", "click", "purchase"};
+  private final String[] eventTypes = new String[]{
+					"\"view\"    ",
+					"\"click\"   ",
+                                        "\"purchase\""
+				      };
 
   private List<String> ads;
   private final Map<String, List<String>> campaigns;
@@ -42,9 +46,9 @@ public class EventGeneratorSource extends LoadGeneratorSource<String> {
     }
     sb.setLength(0);
     sb.append("{\"user_id\":\"");
-    sb.append(pageID);
-    sb.append("\",\"page_id\":\"");
     sb.append(userID);
+    sb.append("\",\"page_id\":\"");
+    sb.append(pageID);
     sb.append("\",\"ad_id\":\"");
     sb.append(ads.get(adsIdx++));
     sb.append("\",\"ad_type\":\"");
