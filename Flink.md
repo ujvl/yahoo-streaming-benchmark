@@ -1,7 +1,6 @@
 ### Flink benchmark
 
-This benchmark runs flink.benchmark.AdvertisingTopologyFlinkWindows.
-
+This benchmark runs flink.benchmark.AdvertisingTopologyFlinkWindows. Make sure to pull the up-to-date branch first.
 
 1) Write the list of slave IPs to `conf/slaves`.
 2) In `conf/benchmarkConf_custom.yaml`:
