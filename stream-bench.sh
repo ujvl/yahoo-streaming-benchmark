@@ -33,7 +33,7 @@ TOPIC=${TOPIC:-"ad-events"}
 PARTITIONS=${PARTITIONS:-1}
 LOAD=${LOAD:-1000}
 CONF_FILE=./conf/benchmarkConf.yaml
-TEST_TIME=${TEST_TIME:-300}
+TEST_TIME=${TEST_TIME:-420}
 POST_FAILURE_TIME=${POST_FAILURE_TIME:-300}
 
 pid_match() {
@@ -121,7 +121,7 @@ run() {
 
   elif [ "START_REDIS" = "$OPERATION" ];
   then
-    start_if_needed redis-server Redis 1 sudo "$REDIS_DIR/src/redis-server" /etc/redis/6379.conf
+    start_if_needed redis-server Redis 1 "$REDIS_DIR/src/redis-server"
     cd data
     $LEIN run -n --configPath ../conf/benchmarkConf.yaml
     cd ..
