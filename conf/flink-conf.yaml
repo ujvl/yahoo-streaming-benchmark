@@ -129,7 +129,7 @@ taskmanager.network.numberOfBuffers: 16384
 # You can also directly specify the paths to hdfs-default.xml and hdfs-site.xml
 # via keys 'fs.hdfs.hdfsdefault' and 'fs.hdfs.hdfssite'.
 #
-fs.hdfs.hadoopconf: /home/ubuntu/yahoo-streaming-benchmark/hadoop-2.6.5/etc/
+fs.hdfs.hadoopconf: ~/yahoo-streaming-benchmark/hadoop-2.6.5/etc/
 
 
 #==============================================================================
@@ -149,9 +149,9 @@ fs.hdfs.hadoopconf: /home/ubuntu/yahoo-streaming-benchmark/hadoop-2.6.5/etc/
 #
 # recovery.zookeeper.storageDir: hdfs:///recovery
 
-akka.ask.timeout: 5000ms
-akka.lookup.timeout: 5000ms
-akka.watch.threshold: 3
+akka.ask.timeout: 20000ms
+akka.lookup.timeout: 20000ms
+akka.watch.threshold: 5
 # Need to modify sources for this one: flink-runtime/src/main/scala/org/apache/flink/runtime/akka/AkkaUtils.scala
 # See patch in conf dir.
 #akka.remote.retry-gate-closed-for: 100ms

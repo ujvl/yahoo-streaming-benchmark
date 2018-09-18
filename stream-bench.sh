@@ -33,7 +33,8 @@ TOPIC=${TOPIC:-"ad-events"}
 PARTITIONS=${PARTITIONS:-1}
 LOAD=${LOAD:-1000}
 CONF_FILE=./conf/benchmarkConf.yaml
-TEST_TIME=${TEST_TIME:-240}
+TEST_TIME=${TEST_TIME:-300}
+POST_FAILURE_TIME=${POST_FAILURE_TIME:-300}
 
 pid_match() {
    local VAL=`ps -aef | grep "$1" | grep -v grep | awk '{print $2}'`
@@ -104,47 +105,6 @@ run() {
   if [ "SETUP" = "$OPERATION" ];
   then
     $GIT clean -fd
-
-    # echo 'kafka.brokers:' > $CONF_FILE
-    # echo '    - "localhost"' >> $CONF_FILE
-    # echo 'kafka.port: 9092' >> $CONF_FILE
-    # echo 'kafka.topic: "'$TOPIC'"' >> $CONF_FILE
-    # echo 'kafka.partitions: '$PARTITIONS >> $CONF_FILE
-    # echo 'kafka.zookeeper.path: /' >> $CONF_FILE
-    # echo >> $CONF_FILE
-    # echo 'akka.zookeeper.path: /akkaQuery' >> $CONF_FILE
-    # echo >> $CONF_FILE
-    # echo 'zookeeper.servers:' >> $CONF_FILE
-    # echo '    - "'$ZK_HOST'"' >> $CONF_FILE
-    # echo 'zookeeper.port: '$ZK_PORT >> $CONF_FILE
-    # echo >> $CONF_FILE
-    # echo 'redis.host: "localhost"' >> $CONF_FILE
-    # echo >> $CONF_FILE
-    # echo 'process.hosts: 1' >> $CONF_FILE
-    # echo 'process.cores: 4' >> $CONF_FILE
-    # echo >> $CONF_FILE
-    # echo '#STORM Specific' >> $CONF_FILE
-    # echo 'storm.workers: 1' >> $CONF_FILE
-    # echo 'storm.ackers: 2' >> $CONF_FILE
-    # echo 'storm.highcard.redisthreads: 20' >> $CONF_FILE
-    # echo >> $CONF_FILE
-    # echo '#Spark Specific' >> $CONF_FILE
-    # echo 'spark.batchtime: 2000' >> $CONF_FILE
-    # echo >> $CONF_FILE
-    # echo '#Flink Specific' >> $CONF_FILE
-    # echo 'group.id: "flink_yahoo_benchmark"' >> $CONF_FILE
-    # echo 'flink.checkpoint.interval: 60000' >> $CONF_FILE
-    # echo 'add.result.sink: 1' >> $CONF_FILE
-    # echo 'flink.highcard.checkpointURI: "file:///tmp/checkpoints"' >> $CONF_FILE
-    # echo 'redis.threads: 20' >> $CONF_FILE
-    # echo >> $CONF_FILE
-    # echo '#EventGenerator' >> $CONF_FILE
-    # echo 'use.local.event.generator: 1' >> $CONF_FILE
-    # echo 'redis.flush: 1' >> $CONF_FILE
-    # echo 'redis.db: 0' >> $CONF_FILE
-    # echo 'load.target.hz: 10000000' >> $CONF_FILE
-    # echo 'num.campaigns: 1000000' >> $CONF_FILE
-	
     $MVN clean install -Dspark.version="$SPARK_VERSION" -Dkafka.version="$KAFKA_VERSION" -Dflink.version="$FLINK_VERSION" -Dstorm.version="$STORM_VERSION" -Dscala.binary.version="$SCALA_BIN_VERSION" -Dscala.version="$SCALA_BIN_VERSION.$SCALA_SUB_VERSION"
 
     #Fetch and build Redis
@@ -161,7 +121,7 @@ run() {
 
   elif [ "START_REDIS" = "$OPERATION" ];
   then
-    start_if_needed redis-server Redis 1 "$REDIS_DIR/src/redis-server"
+    start_if_needed redis-server Redis 1 sudo "$REDIS_DIR/src/redis-server" /etc/redis/6379.conf
     cd data
     $LEIN run -n --configPath ../conf/benchmarkConf.yaml
     cd ..
@@ -169,40 +129,25 @@ run() {
   then
     stop_if_needed redis-server Redis
     rm -f dump.rdb
-#  elif [ "START_ZK" = "$OPERATION" ];
-#  then
-#    start_if_needed dev_zookeeper ZooKeeper 10 "$STORM_DIR/bin/storm" dev-zookeeper
-#  elif [ "STOP_ZK" = "$OPERATION" ];
-#  then
-#    stop_if_needed dev_zookeeper ZooKeeper
-#    rm -rf /tmp/dev-storm-zookeeper
-#  elif [ "START_STORM" = "$OPERATION" ];
-#  then
-#    start_if_needed daemon.name=nimbus "Storm Nimbus" 3 "$STORM_DIR/bin/storm" nimbus
-#    start_if_needed daemon.name=supervisor "Storm Supervisor" 3 "$STORM_DIR/bin/storm" supervisor
-#    start_if_needed daemon.name=ui "Storm UI" 3 "$STORM_DIR/bin/storm" ui
-#    start_if_needed daemon.name=logviewer "Storm LogViewer" 3 "$STORM_DIR/bin/storm" logviewer
-#    sleep 20
-#  elif [ "STOP_STORM" = "$OPERATION" ];
-#  then
-#    stop_if_needed daemon.name=nimbus "Storm Nimbus"
-#    stop_if_needed daemon.name=supervisor "Storm Supervisor"
-#    stop_if_needed daemon.name=ui "Storm UI"
-#    stop_if_needed daemon.name=logviewer "Storm LogViewer"
-#  elif [ "START_KAFKA" = "$OPERATION" ];
-#  then
-#    start_if_needed kafka\.Kafka Kafka 10 "$KAFKA_DIR/bin/kafka-server-start.sh" "$KAFKA_DIR/config/server.properties"
-#    create_kafka_topic
-#  elif [ "STOP_KAFKA" = "$OPERATION" ];
-#  then
-#    stop_if_needed kafka\.Kafka Kafka
-#    rm -rf /tmp/kafka-logs/
+  elif [ "START_LOAD" = "$OPERATION" ];
+  then
+    cd data
+    start_if_needed leiningen.core.main "Load Generation" 1 $LEIN run -r -t $LOAD --configPath ../$CONF_FILE
+    cd ..
+  elif [ "STOP_LOAD" = "$OPERATION" ];
+  then
+    stop_if_needed leiningen.core.main "Load Generation"
+    cd data
+    $LEIN run -g --configPath ../$CONF_FILE || true
+    paste -d' ' times.txt updated.txt | sort -n > latencies.txt
+    cd ..
   elif [ "START_FLINK" = "$OPERATION" ];
   then
     cp conf/slaves $FLINK_DIR/conf/
     cp conf/flink-conf.yaml $FLINK_DIR/conf/
     start_if_needed org.apache.flink.runtime.jobmanager.JobManager Flink 1 $FLINK_DIR/bin/start-cluster.sh
-    sleep 25
+    echo "sleeping 60..."
+    sleep 60
   elif [ "STOP_FLINK" = "$OPERATION" ];
   then
     $FLINK_DIR/bin/stop-cluster.sh
@@ -226,7 +171,7 @@ run() {
     run "START_FLINK"
     run "START_FLINK_PROCESSING"
     sleep 240
-    ssh caelum-302 "cd ~/data-artisans-ycsb/flink-1.0.1/bin/ ; ./taskmanager.sh stop ; sleep 1 ; ./taskmanager.sh start"
+    ssh caelum-302 "cd ~/data-artisans-ycsb/flink-1.0.1/bin/ ; ./taskmanager.sh stop ;" # sleep 1 ; ./taskmanager.sh start"
     sleep 159
     run "STOP_LOAD"
     run "STOP_FLINK_PROCESSING"
@@ -237,89 +182,22 @@ run() {
     run "START_REDIS"
     run "START_FLINK"
     run "START_FLINK_PROCESSING"
+    WORKER=`tail -n 1 conf/slaves`
     sleep $TEST_TIME
-    run "STOP_LOAD"
+    echo "KILLING $WORKER"
+    ssh $WORKER "cd ~/yahoo-streaming-benchmark/flink-1.0.1/bin/ ; ./taskmanager.sh stop ; sleep 1 ; ./taskmanager.sh start"
+    sleep $POST_FAILURE_TIME
     run "STOP_FLINK_PROCESSING"
+    run "STOP_LOAD" # to compute stats
     run "STOP_FLINK"
     run "STOP_REDIS"
-#  elif [ "START_SPARK" = "$OPERATION" ];
-#  then
-#    start_if_needed org.apache.spark.deploy.master.Master SparkMaster 5 $SPARK_DIR/sbin/start-master.sh -h localhost -p 7077
-#    start_if_needed org.apache.spark.deploy.worker.Worker SparkSlave 5 $SPARK_DIR/sbin/start-slave.sh spark://localhost:7077
-#  elif [ "STOP_SPARK" = "$OPERATION" ];
-#  then
-#    stop_if_needed org.apache.spark.deploy.master.Master SparkMaster
-#    stop_if_needed org.apache.spark.deploy.worker.Worker SparkSlave
-#    sleep 3
-#  elif [ "START_LOAD" = "$OPERATION" ];
-#  then
-#    cd data
-#    start_if_needed leiningen.core.main "Load Generation" 1 $LEIN run -r -t $LOAD --configPath ../$CONF_FILE
-#    cd ..
-#  elif [ "STOP_LOAD" = "$OPERATION" ];
-#  then
-#    stop_if_needed leiningen.core.main "Load Generation"
-#    cd data
-#    $LEIN run -g --configPath ../$CONF_FILE || true
-#    paste -d' ' times.txt updated.txt | sort -n > latencies.txt
-#    cd ..
-#  elif [ "START_STORM_TOPOLOGY" = "$OPERATION" ];
-#  then
-#    "$STORM_DIR/bin/storm" jar ./storm-benchmarks/target/storm-benchmarks-0.1.0.jar storm.benchmark.AdvertisingTopology test-topo -conf $CONF_FILE
-#    sleep 15
-#  elif [ "STOP_STORM_TOPOLOGY" = "$OPERATION" ];
-#  then
-#    "$STORM_DIR/bin/storm" kill -w 0 test-topo || true
-#    sleep 10
-#  elif [ "START_SPARK_PROCESSING" = "$OPERATION" ];
-#  then
-#    "$SPARK_DIR/bin/spark-submit" --master spark://localhost:7077 --class spark.benchmark.KafkaRedisAdvertisingStream ./spark-benchmarks/target/spark-benchmarks-0.1.0.jar "$CONF_FILE" &
-#    sleep 5
-#  elif [ "STOP_SPARK_PROCESSING" = "$OPERATION" ];
-#  then
-#    stop_if_needed spark.benchmark.KafkaRedisAdvertisingStream "Spark Client Process"
-#  elif [ "STORM_TEST" = "$OPERATION" ];
-#  then
-#    run "START_ZK"
-#    run "START_REDIS"
-#    run "START_KAFKA"
-#    run "START_STORM"
-#    run "START_STORM_TOPOLOGY"
-#    run "START_LOAD"
-#    sleep $TEST_TIME
-#    run "STOP_LOAD"
-#    run "STOP_STORM_TOPOLOGY"
-#    run "STOP_STORM"
-#    run "STOP_KAFKA"
-#    run "STOP_REDIS"
-#    run "STOP_ZK"
-#  elif [ "SPARK_TEST" = "$OPERATION" ];
-#  then
-#    run "START_ZK"
-#    run "START_REDIS"
-#    run "START_KAFKA"
-#    run "START_SPARK"
-#    run "START_SPARK_PROCESSING"
-#    run "START_LOAD"
-#    sleep $TEST_TIME
-#    run "STOP_LOAD"
-#    run "STOP_SPARK_PROCESSING"
-#    run "STOP_SPARK"
-#    run "STOP_KAFKA"
-#    run "STOP_REDIS"
-#    run "STOP_ZK"
   elif [ "STOP_ALL" = "$OPERATION" ];
   then
 #    run "STOP_LOAD"
-#    run "STOP_SPARK_PROCESSING"
-#    run "STOP_SPARK"
     run "STOP_FLINK_PROCESSING"
     run "STOP_FLINK"
-#    run "STOP_STORM_TOPOLOGY"
-#    run "STOP_STORM"
-#    run "STOP_KAFKA"
+    run "STOP_LOAD"
     run "STOP_REDIS"
-#    run "STOP_ZK"
   elif [ "REBUILD" = "$OPERATION" ];
   then
     $MVN clean install -Dspark.version="$SPARK_VERSION" -Dkafka.version="$KAFKA_VERSION" -Dflink.version="$FLINK_VERSION" -Dstorm.version="$STORM_VERSION" -Dscala.binary.version="$SCALA_BIN_VERSION" -Dscala.version="$SCALA_BIN_VERSION.$SCALA_SUB_VERSION"

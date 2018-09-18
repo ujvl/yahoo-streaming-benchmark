@@ -1,96 +1,23 @@
 #!/bin/bash
 
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-1000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST_FAILURE
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-1000ms-failure-flink-$i.txt
-  sleep 10
-done
+BENCH_DIR="~/yahoo-streaming-benchmark"
 
-#----------------------------
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-2000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST_FAILURE
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-2000ms-failure-flink-$i.txt
-  sleep 10
-done
+# Use benchmarkConf_custom as the benchmarkConf for this experiment
+cp $BENCH_DIR/conf/benchmarkConf_custom.yaml $BENCH_DIR/conf/benchmarkConf.yaml
 
-#----------------------------
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-2000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-2000ms-flink-$i.txt
-  sleep 10
-done
+# Make sure flink's conf dir is up-to-date on both the master and slaves. 
+cp $BENCH_DIR/conf/slaves $BENCH_DIR/flink-1.0.1/conf/
+cp $BENCH_DIR/conf/flink-conf.yaml $BENCH_DIR/flink-1.0.1/conf/
+./hosts.sh cp $BENCH_DIR/conf/flink-conf.yaml $BENCH_DIR/flink-1.0.1/conf/
 
-#----------------------------
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-1000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-1000ms-flink-$i.txt
-  sleep 10
-done
+.$BENCH_DIR/stream-bench.sh STOP_ALL
 
-#----------------------------
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-5000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-5000ms-flink-$i.txt
-  sleep 10
-done
+# Clear logs from previous runs
+rm -rf $BENCH_DIR/flink-1.0.1/log/*
+./hosts.sh rm -rf $BENCH_DIR/flink-1.0.1/log/*
 
-#----------------------------
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-5000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST_FAILURE
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-5000ms-failure-flink-$i.txt
-  sleep 10
-done
+#------------- Run the flink benchmark (includes failure currently) ---------------
+$BENCH_DIR/stream-bench.sh FLINK_TEST
+mv $BENCH_DIR/data/latencies.txt $BENCH_DIR/results/latencies-flink.txt
+sleep 10
 
-#----------------------------
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-2000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-2000ms-exactly-once-flink-$i.txt
-  sleep 10
-done
-
-#----------------------------
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-2000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST_FAILURE
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-2000ms-exactly-once-failure-flink-$i.txt
-  sleep 10
-done
-
-#----------------------------
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-1000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-1000ms-exactly-once-flink-$i.txt
-  sleep 10
-done
-
-#----------------------------
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-1000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST_FAILURE
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-1000ms-exactly-once-failure-flink-$i.txt
-  sleep 10
-done
-
-#----------------------------
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-5000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-5000ms-exactly-once-flink-$i.txt
-  sleep 10
-done
-
-#----------------------------
-for i in `seq 1 10` ; do
-  cp conf/benchmarkConf-10000k-50ms-3cores-checkpoint-5000ms.yaml conf/benchmarkConf.yaml
-  ./stream-bench.sh FLINK_TEST_FAILURE
-  mv data/latencies.txt results/latencies-10000k-50ms-3cores-checkpoint-5000ms-exactly-once-failure-flink-$i.txt
-  sleep 10
-done

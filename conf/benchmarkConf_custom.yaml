@@ -17,7 +17,7 @@ zookeeper.port: 2181
 # redis
 redis.host: "ip-172-31-0-183"
 
-process.hosts: 127
+process.hosts: 128
 process.cores: 4
 
 #Spark Specific

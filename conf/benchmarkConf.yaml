@@ -1,6 +1,7 @@
 # Copyright 2015, Yahoo Inc.
 # Licensed under the terms of the Apache License 2.0. Please see LICENSE file in the project root for terms.
 
+# kafka (ignore)
 kafka.brokers:
     - "localhost"
 kafka.port: 9092
@@ -8,24 +9,26 @@ kafka.topic: "ads"
 kafka.partitions: 20
 kafka.zookeeper.path: /
 
+# zookeeper (ignore)
 zookeeper.servers:
-    - "10.0.0.34"
+    - "ip-172-31-0-183"
 zookeeper.port: 2181
 
-redis.host: "10.0.0.34"
+# redis
+redis.host: "ip-172-31-0-183"
 
-process.hosts: 25
-process.cores: 3
+process.hosts: 128
+process.cores: 4
 
 #Spark Specific
 spark.batchtime: 2000
 
 #Flink specific
 group.id: "flink_yahoo_benchmark"
-flink.checkpoint.interval: 1000
+flink.checkpoint.interval: 10000
 add.result.sink: 1
 #flink.highcard.checkpointURI: "file:///tmp/checkpoints"
-redis.threads: 10
+redis.threads: 4
 
 
 # The following is for when running the EventGenerator directly rather than reading from Kafka
@@ -33,5 +36,5 @@ use.local.event.generator: 1
 redis.flush: 1
 redis.db: 0
 load.target.hz: 10000000
-load.time.slice.length.ms: 50
+load.time.slice.length.ms: 100
 num.campaigns: 100
