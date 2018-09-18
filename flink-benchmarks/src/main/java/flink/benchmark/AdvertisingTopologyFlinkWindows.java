@@ -487,9 +487,9 @@ public class AdvertisingTopologyFlinkWindows {
       super.open(parameters);
       while (true) {
           try {
-              int ms = ThreadLocalRandom.current().nextInt(0, 100);
-              LOG.info("NotifySink waiting to init... sleeping {}ms", ms);
-              TimeUnit.MILLISECONDS.sleep(ms);
+              //int ms = ThreadLocalRandom.current().nextInt(0, 100);
+              //LOG.info("NotifySink waiting to init... sleeping {}ms", ms);
+              //TimeUnit.MILLISECONDS.sleep(ms);
               flushJedis = new Jedis(config.redisHost, 6379, 10000);
               break;
           }
