@@ -43,23 +43,3 @@ For most of these benchmarks the results are collected using Yahoo's original sc
 
 ### Other notes
 This code was built and tested against Flink 1.0-SNAPSHOT (master on Jan 27, 2016) and Storm 2.0.0-SNAPSHOT (SHA a8d253). 
-
-### [Ujval] Flink benchmark, running flink.benchmark.AdvertisingTopologyFlinkWindows
-1) Write the list of slave IPs to `conf/slaves`, separated by newlines.
-2) In `conf/benchmarkConf_custom.yaml`:
-    - make sure `process.hosts` is set to a values less than or equal to the number of slaves in `conf/slaves`.
-    - set `redis.host` to the head node IP
-    - set the cluster-wide load target in events/s: `load.target.hz` 
-    - the Kafka and Zookeeper parameters don't really matter.
-2) Set up HDFS and start a cluster. 
-    - On the AMI it's already installed at `~/yahoo-streaming-benchmark/hadoop-2.6.5/`. 
-    - In theory you can just copy your slaves file into `hadoop-2.6.5/etc/` and then run `./format-and-start-hdfs.sh` if your ssh keys are set up properly.
-    - There are copies of `core-site.xml` and `hdfs-site.xml` that I used in `conf/`. 
-3) In `conf/flink_conf.yaml`:
-    - Set `jobmanager.rpc.address` as the master IP
-    - Set `state.backend.fs.checkpointdir`.
-    - Set `fs.hdfs.hadoopconf` to where the conf files live.
-    - Note: `conf/flink_conf.yaml` is copied and rsynced automatically by `run_flink_experiments.sh` every run
-3) `mvn package` from the root dir of the project
-3) Run `./run_flink_experiments.sh`.
-
