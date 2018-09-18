@@ -265,7 +265,7 @@ public class AdvertisingTopologyFlinkWindows {
     FilterFunction<Tuple7<String, String, String, String, String, String, String>> {
     @Override
     public boolean filter(Tuple7<String, String, String, String, String, String, String> tuple) throws Exception {
-      return tuple.getField(4).equals("\"view\"    ");
+      return tuple.getField(4).equals("view");
     }
   }
 
@@ -277,7 +277,6 @@ public class AdvertisingTopologyFlinkWindows {
     @Override
     public boolean filter(String raw_event) throws Exception {
       String sub = raw_event.substring(180, 190);
-      LOG.info("is it true? {}, {} ==> {}", sub, "\"view\"    ", sub.equals("\"view\"    "));
       return raw_event.substring(180, 190).equals("\"view\"    ");
     }
   }
@@ -289,8 +288,7 @@ public class AdvertisingTopologyFlinkWindows {
     @Override
     public void flatMap(String input, Collector<Tuple2<String, String>> out) throws Exception {
       String ad_id = input.substring(108, 144);
-      String event_time = input.substring(205, 221);
-      LOG.info("projected: ({}, {})", ad_id, event_time);
+      String event_time = input.substring(205, 218);
       out.collect(new Tuple2<>(ad_id, event_time));
     }
   }

@@ -35,6 +35,7 @@ LOAD=${LOAD:-1000}
 CONF_FILE=./conf/benchmarkConf.yaml
 TEST_TIME=${TEST_TIME:-420}
 POST_FAILURE_TIME=${POST_FAILURE_TIME:-300}
+START_SLAVES_TIME=${START_SLAVES_TIME:-60}
 
 pid_match() {
    local VAL=`ps -aef | grep "$1" | grep -v grep | awk '{print $2}'`
@@ -146,8 +147,8 @@ run() {
     cp conf/slaves $FLINK_DIR/conf/
     cp conf/flink-conf.yaml $FLINK_DIR/conf/
     start_if_needed org.apache.flink.runtime.jobmanager.JobManager Flink 1 $FLINK_DIR/bin/start-cluster.sh
-    echo "sleeping 60..."
-    sleep 60
+    echo "sleeping $START_SLAVES_TIME..."
+    sleep $START_SLAVES_TIME
   elif [ "STOP_FLINK" = "$OPERATION" ];
   then
     $FLINK_DIR/bin/stop-cluster.sh
