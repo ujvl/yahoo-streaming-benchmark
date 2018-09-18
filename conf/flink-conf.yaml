@@ -129,7 +129,7 @@ taskmanager.network.numberOfBuffers: 16384
 # You can also directly specify the paths to hdfs-default.xml and hdfs-site.xml
 # via keys 'fs.hdfs.hdfsdefault' and 'fs.hdfs.hdfssite'.
 #
-fs.hdfs.hadoopconf: ~/yahoo-streaming-benchmark/hadoop-2.6.5/etc/
+fs.hdfs.hadoopconf: /home/ubuntu/yahoo-streaming-benchmark/hadoop-2.6.5/etc/
 
 
 #==============================================================================

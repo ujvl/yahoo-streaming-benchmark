@@ -1,6 +1,7 @@
 #!/bin/bash
+set -e
 
-BENCH_DIR="~/yahoo-streaming-benchmark"
+BENCH_DIR="/home/ubuntu/yahoo-streaming-benchmark"
 
 # Use benchmarkConf_custom as the benchmarkConf for this experiment
 cp $BENCH_DIR/conf/benchmarkConf_custom.yaml $BENCH_DIR/conf/benchmarkConf.yaml
@@ -10,7 +11,7 @@ cp $BENCH_DIR/conf/slaves $BENCH_DIR/flink-1.0.1/conf/
 cp $BENCH_DIR/conf/flink-conf.yaml $BENCH_DIR/flink-1.0.1/conf/
 ./hosts.sh cp $BENCH_DIR/conf/flink-conf.yaml $BENCH_DIR/flink-1.0.1/conf/
 
-.$BENCH_DIR/stream-bench.sh STOP_ALL
+$BENCH_DIR/stream-bench.sh STOP_ALL
 
 # Clear logs from previous runs
 rm -rf $BENCH_DIR/flink-1.0.1/log/*
