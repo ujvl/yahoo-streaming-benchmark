@@ -23,7 +23,7 @@ This Flink program is an example of using the Flink nodes themselves as the key-
 This is the same as above but in addition it is designed for a very high key cardinality.
 
 #### flink.benchmark.state.AkkaStateQuery
-This program is used to query the key-value state directly in the Flink nodes.  This in combination with either of the two -FlinkState programs above is what allows you to eliminate the key-value store altogether.
+This program is used to query the key-value state directly in the Flink nodes.  This in comb ination with either of the two -FlinkState programs above is what allows you to eliminate the key-value store altogether.
 
 #### storm.benchmark.AdvertisingTopologyHighKeyCard
 This Storm program is derivative of Yahoo's original AdvertisingTopology code.  The difference is that it is designed for very high #'s of campaigns and builds the output windows by directly updating them in Redis.  This benchmark represents any computation where it's neccessary to build state outside of the streaming system such that it's fault tolerant.  Many applications in production work exactly this way and typically their throughput is limited by the remote key-value store.  The windows in this case are set to 60 minutes by default but this is configurable.
@@ -43,4 +43,24 @@ For most of these benchmarks the results are collected using Yahoo's original sc
 
 ### Other notes
 This code was built and tested against Flink 1.0-SNAPSHOT (master on Jan 27, 2016) and Storm 2.0.0-SNAPSHOT (SHA a8d253). 
+
+### [Ujval] Flink benchmark, running flink.benchmark.AdvertisingTopologyFlinkWindows
+1) Write the slave IPs to `conf/slaves`.
+2) In `conf/benchmarkConf_custom.yaml`:
+    - make sure `process.hosts` is set to a values less than or equal to the number of slaves in `conf/slaves`.
+    - set `redis.host` to the head node IP
+    - set the cluster-wide load target in events/s: `load.target.hz` 
+    - the Kafka and Zookeeper parameters don't really matter.
+2) Set up HDFS and start a cluster. 
+    - `flink_conf.yaml` assumes it's installed at `~/yahoo-streaming-benchmark/hadoop-2.6.5/` by default so change this if necessary.
+    - There are copies of `core-site.xml` and `hdfs-site.xml` that I used in `conf/`. 
+    - ./hadoop-2.6.5/bin/hdfs namenode -format
+    - ./hadoop-2.6.5/sbin/start-dfs.sh
+3) In `conf/flink_conf.yaml`:
+    - Set `jobmanager.rpc.address` as the master IP
+    - Set `state.backend.fs.checkpointdir`.
+    - Set `fs.hdfs.hadoopconf` to where the conf files live.
+    - Note: this conf file is copied and rsynced automatically by `run_flink_experiments.sh`
+3) `mvn package` from the root dir of the project
+3) Run `./run_flink_experiments.sh`.
 
