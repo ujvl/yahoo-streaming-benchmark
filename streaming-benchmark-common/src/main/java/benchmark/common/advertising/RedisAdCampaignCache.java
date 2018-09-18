@@ -22,20 +22,29 @@ public class RedisAdCampaignCache {
     private static final Logger LOG = LoggerFactory.getLogger(RedisAdCampaignCache.class);
 
     public RedisAdCampaignCache(String redisServerHostname, int redisDb) {
-        LOG.info("INITIALIZING REDIS CAMPAIGN CACHE");
-        int seconds = ThreadLocalRandom.current().nextInt(0, 5);
+        LOG.info("INITializinG RedisAdCampaignCache");
 
-	try {
-            LOG.info("Waiting to init jedis... sleeping {}s", seconds);
-	    TimeUnit.MINUTES.sleep(seconds); 
-	} 
-	catch(InterruptedException e) {
-	    System.exit(-1);
-	}
 	LOG.info("Attempting to connect...");
-	jedis = new Jedis(redisServerHostname, 6379, 10000);
-	LOG.info("Connected??");
+	while (true) {
+	    try {
+		int ms = ThreadLocalRandom.current().nextInt(0, 100);
+		LOG.info("Cache waiting to init... sleeping {}ms", ms);
+		TimeUnit.MILLISECONDS.sleep(ms); 
+	        jedis = new Jedis(redisServerHostname, 6379, 10000);
+		break;
+	    }
+	    catch (Exception e) {
+                LOG.info("Retrying...");
+		continue;
+	    }
+	}
+	LOG.info("Connected!");
 	jedis.select(redisDb);
+
+//	LOG.info("WRITE_TEST");
+//	jedis.set("foo", "bar");
+//	LOG.info("READ_TEST");
+//        LOG.info("Get foo: {}", jedis.get("foo")); 
     }
 
     public RedisAdCampaignCache(String redisServerHostname) {

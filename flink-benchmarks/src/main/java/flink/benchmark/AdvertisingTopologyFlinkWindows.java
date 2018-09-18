@@ -40,6 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.List;
@@ -273,7 +275,7 @@ public class AdvertisingTopologyFlinkWindows {
     public void open(Configuration parameters) {
       //initialize jedis
       String redis_host = config.redisHost;
-      LOG.info("Opening connection with Jedis to {}", redis_host);
+      LOG.info("Opening connection with Jedis using RedisAdCampaignCache to {}", redis_host);
       this.redisAdCampaignCache = new RedisAdCampaignCache(redis_host, config.redisDb);
       this.redisAdCampaignCache.prepare();
     }
@@ -483,7 +485,19 @@ public class AdvertisingTopologyFlinkWindows {
     @Override
     public void open(Configuration parameters) throws Exception {
       super.open(parameters);
-      flushJedis = new Jedis(config.redisHost, 6379, 10000);
+      while (true) {
+          try {
+              int ms = ThreadLocalRandom.current().nextInt(0, 100);
+              LOG.info("NotifySink waiting to init... sleeping {}ms", ms);
+              TimeUnit.MILLISECONDS.sleep(ms);
+              flushJedis = new Jedis(config.redisHost, 6379, 10000);
+              break;
+          }
+          catch (Exception e) {
+              LOG.info("Retrying...");
+              continue;
+          }
+      }
       flushJedis.select(1); // select db 1
     }
 
