@@ -7,6 +7,8 @@ package flink.benchmark;
 import benchmark.common.advertising.RedisAdCampaignCache;
 import flink.benchmark.generator.EventGeneratorSource;
 import flink.benchmark.generator.RedisHelper;
+import flink.benchmark.generator.NoJSONEvent;
+import flink.benchmark.generator.NoJSONEventGeneratorSource;
 import flink.benchmark.utils.ThroughputLogger;
 import net.minidev.json.JSONObject;
 import net.minidev.json.parser.JSONParser;
@@ -65,19 +67,41 @@ public class AdvertisingTopologyFlinkWindows {
 
     StreamExecutionEnvironment env = setupEnvironment(config);
 
-    DataStream<String> rawMessageStream = streamSource(config, env);
-
-    // log performance
-    rawMessageStream.flatMap(new ThroughputLogger<String>(240, 1_000_000));
     
     DataStream<Tuple2<String, String>> joinedAdImpressions;
-    if (config.getParameters().has("no.json")) {
+    if (config.getParameters().has("no.json.parsing")) {
+        LOG.info("no-JSON parsing path");
+	
+	// generate data
+        DataStream<String> rawMessageStream = streamSource(config, env);
+        rawMessageStream.flatMap(new ThroughputLogger<String>(240, 1_000_000));
+
+        joinedAdImpressions = rawMessageStream
+            .filter(new EventFilterNoJSONParsingBolt())
+            .flatMap(new ProjectNoJSONParsingBolt()) //ad_id, event_time
+            .flatMap(new RedisJoinBolt(config)) // campaign_id, event_time
+            .assignTimestamps(new AdTimestampExtractor()); // extract timestamps and generate watermarks from event_time
+    } 
+    else if (config.getParameters().has("no.json")) {
+        LOG.info("no-JSON at all path");
+
+	// generate data
+        DataStream<NoJSONEvent> rawMessageStream = noJSONstreamSource(config, env);
+        rawMessageStream.flatMap(new ThroughputLogger<NoJSONEvent>(240, 1_000_000));
+
         joinedAdImpressions = rawMessageStream
             .filter(new EventFilterNoJSONBolt())
             .flatMap(new ProjectNoJSONBolt()) //ad_id, event_time
             .flatMap(new RedisJoinBolt(config)) // campaign_id, event_time
             .assignTimestamps(new AdTimestampExtractor()); // extract timestamps and generate watermarks from event_time
-    } else {
+    } 
+    else {
+        LOG.info("with-JSON parsing path");
+
+	// generate data
+        DataStream<String> rawMessageStream = streamSource(config, env);
+        rawMessageStream.flatMap(new ThroughputLogger<String>(240, 1_000_000));
+
         joinedAdImpressions = rawMessageStream
             .flatMap(new DeserializeBolt())
             .filter(new EventFilterBolt())
@@ -98,7 +122,7 @@ public class AdvertisingTopologyFlinkWindows {
     DataStream<Tuple3<String, String, Long>> result =
         windowStream.apply(sumReduceFunction(), sumWindowFunction());
 
-        // write result to redis
+    // write result to redis
     if (config.getParameters().has("add.result.sink.optimized")) {
         result.addSink(new RedisResultSinkOptimized(config));
     } else {
@@ -130,6 +154,23 @@ public class AdvertisingTopologyFlinkWindows {
       sourceName = "Kafka";
     }
 
+    return env.addSource(source, sourceName);
+  }
+
+  /**
+   * Stream source no-JSON  
+   */
+  private static DataStream<NoJSONEvent> noJSONstreamSource(BenchmarkConfig config, StreamExecutionEnvironment env) {
+    // Choose a source -- Either local generator or Kafka
+    RichParallelSourceFunction<NoJSONEvent> source;
+    String sourceName = "EventGenerator";
+    NoJSONEventGeneratorSource eventGenerator = new NoJSONEventGeneratorSource(config);
+    source = eventGenerator;
+
+    Map<String, List<String>> campaigns = eventGenerator.getCampaigns();
+    RedisHelper redisHelper = new RedisHelper(config);
+    redisHelper.prepareRedis(campaigns);
+    redisHelper.writeCampaignFile(campaigns);
     return env.addSource(source, sourceName);
   }
 
@@ -270,26 +311,48 @@ public class AdvertisingTopologyFlinkWindows {
   }
 
   /**
-   * Filter out all but "view" events (NO JSON)
+   * Filter out all but "view" events (NO JSON parsing)
    */
-  public static class EventFilterNoJSONBolt implements
+  public static class EventFilterNoJSONParsingBolt implements
     FilterFunction<String> {
     @Override
     public boolean filter(String raw_event) throws Exception {
-      String sub = raw_event.substring(180, 190);
       return raw_event.substring(180, 190).equals("\"view\"    ");
+    }
+  }
+
+  /**
+   * Filter out all but "view" events (NO JSON)
+   */
+  public static class EventFilterNoJSONBolt implements
+    FilterFunction<NoJSONEvent> {
+    @Override
+    public boolean filter(NoJSONEvent e) throws Exception {
+      return e.eventType.equals("view");
     }
   }
 
   /**
    * Project (2, 5)
    */
-  public static class ProjectNoJSONBolt extends RichFlatMapFunction<String, Tuple2<String, String>> {
+  public static class ProjectNoJSONParsingBolt extends RichFlatMapFunction<String, Tuple2<String, String>> {
     @Override
     public void flatMap(String input, Collector<Tuple2<String, String>> out) throws Exception {
       String ad_id = input.substring(108, 144);
       String event_time = input.substring(205, 218);
       out.collect(new Tuple2<>(ad_id, event_time));
+    }
+  }
+
+  /**
+   * Project (2, 5)
+   */
+  public static class ProjectNoJSONBolt extends RichFlatMapFunction<NoJSONEvent, Tuple2<String, String>> {
+    @Override
+    public void flatMap(NoJSONEvent input, Collector<Tuple2<String, String>> out) throws Exception {
+      //LOG.info("{}, {}", input.adId, input.eventTime);
+      LOG.info("project to {}, {}", input.adId, input.eventTime);
+      out.collect(new Tuple2<>(input.adId, input.eventTime));
     }
   }
 

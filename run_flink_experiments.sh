@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 BENCH_DIR="/home/ubuntu/yahoo-streaming-benchmark"
 
@@ -9,6 +10,7 @@ cp $BENCH_DIR/conf/benchmarkConf_custom.yaml $BENCH_DIR/conf/benchmarkConf.yaml
 # Make sure flink's conf dir is up-to-date on both the master and slaves. 
 cp $BENCH_DIR/conf/slaves $BENCH_DIR/flink-1.0.1/conf/
 cp $BENCH_DIR/conf/flink-conf.yaml $BENCH_DIR/flink-1.0.1/conf/
+./sync $BENCH_DIR/conf/flink-conf.yaml
 ./hosts.sh cp $BENCH_DIR/conf/flink-conf.yaml $BENCH_DIR/flink-1.0.1/conf/
 
 $BENCH_DIR/stream-bench.sh STOP_ALL
@@ -19,6 +21,7 @@ rm -rf $BENCH_DIR/flink-1.0.1/log/*
 
 #------------- Run the flink benchmark (includes failure currently) ---------------
 $BENCH_DIR/stream-bench.sh FLINK_TEST
+rm $BENCH_DIR/results/latencies-flink.txt
 mv $BENCH_DIR/data/latencies.txt $BENCH_DIR/results/latencies-flink.txt
 sleep 10
 
